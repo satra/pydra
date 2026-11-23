@@ -418,8 +418,15 @@ class ResultStore(ty.Protocol):
         was taken over by another process while it was held.
         """
 
+    def read_succeeded(
+        self, checksum: str, context: Context, task: "Task | None"
+    ) -> Result | None:
+        """The result of ``checksum`` under ``context``, read without the lease from a
+        success record; None when there is none (by default a store keeps none)."""
+        return None
 
-class PickleStore:
+
+class PickleStore(ResultStore):
     """Results pickled into ``<cache_root>/<checksum>/<context key>/_result.pklz``.
 
     Looking up a result unpickles its files, so ``cache_root`` and every entry of
