@@ -27,3 +27,10 @@ repos:
       hooks:
           - id: nbstripout
             files: \.(ipynb)$
+    - repo: local
+      hooks:
+          - id: no-review-ids
+            name: no review ids or development history outside specs and proposals
+            language: pygrep
+            entry: '(?i:fix round|review round|re-review|reviewer.s probe|\bruling R\d|\breview r\d|\bprobe W\d|\bmeasured on R\d)|\bR-\d{3}\b|\((?:N|B|IMP|NB)-?r?\d+[a-z]?(?:,\s*[A-Z]+-?\d+[a-z]?)*\)|"""[A-Z]{1,3}\d+[a-z]?:|\bX6b?\b|\b(?:[Uu]ntil|[Aa]fter|[Bb]efore|removed in|joins in) [REPITW]\d+[a-z]?\b|\([A-Z]\d+[a-z]? follow-on\)'
+            exclude: ^(specs|proposals)/|^\.pre-commit-config\.yaml$
