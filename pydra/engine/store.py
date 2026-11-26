@@ -324,6 +324,14 @@ def check_declared_code(
     return stored
 
 
+def forget_outcome(store: "ResultStore", job: "Job") -> None:
+    """Tell ``store`` the outcome of ``job`` is held; a failure is left for its collection"""
+    try:
+        store.forget_committed(job)
+    except Exception as exc:
+        logger.debug("Forgetting the outcome file of %s: %s", job.checksum, exc)
+
+
 def reuse_policy(reuse: "str | ReusePolicy") -> ReusePolicy:
     """The policy named by ``reuse``, or ``reuse`` itself if it is a policy."""
     if isinstance(reuse, ReusePolicy):
@@ -384,10 +392,16 @@ class ResultStore(ty.Protocol):
     finds: ty.ClassVar[bool] = False
     """Whether the store answers `find`; otherwise a job's result is read by `lookup`"""
 
-    def find(self, job: "Job") -> ty.Any:
+    def find(self, job: "Job", *, probe: bool = False) -> ty.Any:
         """What ``job`` may reuse (a `Hit`, `Verify` or `Miss`), under a store with
-        `finds`"""
+        `finds`; with ``probe``, a `Miss` at once when the job's own address holds no
+        entry"""
         raise NotImplementedError(f"{type(self).__name__} answers through lookup")
+
+    def present(self, job: "Job") -> bool:
+        """Whether the job's own address may hold an entry, one existence check; True
+        by default (read to know)"""
+        return True
 
     def work_dir(self, job: "Job") -> Path:
         """The directory ``job`` runs in, under a store with `has_work_dirs`"""
@@ -515,9 +529,16 @@ class ResultStore(ty.Protocol):
         """The slot and recorded context of each result stored for ``checksum``, in
         every location, in the order ``lookup`` considers them."""
 
-    def lockfile(self, checksum: str, context: Context) -> Path:
+    def lockfile(self, checksum: str, context: Context) -> Path | None:
         """The path of the lease guarding the job identified by ``checksum`` under
-        ``context``. It exists while the lease is held."""
+        ``context``, which exists while the lease is held; None when the store's leases
+        have no such file."""
+        return None
+
+    def has_error(self, job: "Job") -> bool:
+        """Whether a failure of ``job``'s current attempt is recorded (`record_error`);
+        False by default, where its result is the record"""
+        return False
 
     def acquire(
         self, checksum: str, context: Context, *, resumable: bool = False
